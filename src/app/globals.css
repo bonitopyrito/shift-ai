@@ -1,0 +1,53 @@
+@import "tailwindcss";
+
+/* Design tokens — light values, swapped for dark below.
+   Chart colors validated (dataviz six-checks) against both surfaces. */
+:root {
+  --background: #f6f5f2;
+  --surface-1: #fcfcfb;
+  --border: #e4e2dc;
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted: #8a887f;
+  --series-1: #2a78d6; /* demand bars — single hue, magnitude job */
+  --accent: #2a78d6;
+  --status-good: #008300;
+  --status-warning: #b97a00;
+  --status-serious: #c93c3b;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #121211;
+    --surface-1: #1a1a19;
+    --border: #34332f;
+    --text-primary: #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted: #8a887f;
+    --series-1: #3987e5;
+    --accent: #3987e5;
+    --status-good: #4caf50;
+    --status-warning: #e0a93d;
+    --status-serious: #e66767;
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface-1);
+  --color-line: var(--border);
+  --color-ink: var(--text-primary);
+  --color-ink-2: var(--text-secondary);
+  --color-ink-3: var(--text-muted);
+  --color-accent: var(--accent);
+  --color-good: var(--status-good);
+  --color-warn: var(--status-warning);
+  --color-bad: var(--status-serious);
+}
+
+body {
+  background: var(--background);
+  color: var(--text-primary);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+}
