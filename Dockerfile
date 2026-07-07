@@ -14,7 +14,8 @@ ENV NODE_ENV=production
 ENV PORT=3000
 EXPOSE 3000
 
-# SQLite lives here — mount a volume so leads survive restarts
-VOLUME /app/data
+# SQLite lives in /app/data — attach a persistent volume there through your
+# host's UI (Railway: service → Attach Volume → mount path /app/data).
+# Railway rejects Dockerfile VOLUME instructions, so none is declared here.
 
 CMD ["npm", "start"]
