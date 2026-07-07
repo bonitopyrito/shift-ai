@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "demo": "node scripts/demo.mjs"
+    "demo": "node scripts/demo.mjs",
+    "poll": "node scripts/poll-meta.mjs --watch"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.110.0",

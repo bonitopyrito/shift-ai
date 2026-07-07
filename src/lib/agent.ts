@@ -5,6 +5,7 @@ import {
   addModelRequest,
   getMessages,
   getOrCreateLead,
+  getSetting,
   searchCars,
   updateLead,
 } from "./db";
@@ -216,9 +217,11 @@ async function runLiveAgent(lead: Lead, client: Anthropic): Promise<AgentOutcome
  * naive keyword matching against inventory + heuristic escalation, so the
  * dashboard, queue, and intel capture can be exercised without live AI.
  */
-function runStubAgent(lead: Lead, inbound: string): AgentOutcome {
+function runStubAgent(lead: Lead, inbound: string, contextText = ""): AgentOutcome {
   const text = inbound.toLowerCase();
-  const words = text.split(/[^a-z0-9]+/).filter((w) => w.length > 2);
+  // a bare "how much?" comment gets its car from the post/reel it's under
+  const matchCorpus = `${text} ${contextText.toLowerCase()}`;
+  const words = matchCorpus.split(/[^a-z0-9]+/).filter((w) => w.length > 2);
   const seen = new Map<string, ReturnType<typeof searchCars>[number]>();
   for (const raw of words) {
     // try the word and its singular form ("corollas" → "corolla")
@@ -244,7 +247,8 @@ function runStubAgent(lead: Lead, inbound: string): AgentOutcome {
     addLeadNote(lead.id, "question", `Asked: "${inbound.slice(0, 120)}"`);
   }
 
-  const negotiating = /\$|\d{3,}|take|offer|trade|cash today|lower|deal|finance|payment/.test(text);
+  const negotiating =
+    /\$|\d{3,}|\d+\s?k\b|take|offer|trade|cash|lower|deal|finance|payment|zelle/.test(text);
   if (negotiating && lead.stage !== "closed") {
     updateLead(lead.id, { stage: "hot" });
   } else if (lead.stage === "new") {
@@ -278,18 +282,32 @@ function runStubAgent(lead: Lead, inbound: string): AgentOutcome {
   return { replyText: reply, disposition: "sent", draftReason: null, live: false };
 }
 
+export interface InboundOptions {
+  /** Set when the inbound text is a comment on one of his posts/reels. */
+  comment?: { mediaLabel: string };
+}
+
 /**
  * Full inbound pipeline: record the message, run the agent (live or stub),
  * store the reply as sent or as a draft awaiting approval.
+ * Comments run the same pipeline — the reply is what goes out as the
+ * private-reply DM, plus a short public comment reply pointing to DMs.
  * Returns the outcome plus the stored reply's message id.
  */
 export async function handleInboundMessage(
   igUsername: string,
   text: string,
-  displayName?: string
-): Promise<AgentOutcome & { leadId: number; replyMessageId: number }> {
+  displayName?: string,
+  options?: InboundOptions
+): Promise<AgentOutcome & { leadId: number; replyMessageId: number; publicReply: string | null }> {
   const lead = getOrCreateLead(igUsername, displayName);
-  addMessage(lead.id, "in", text, "sent");
+  const storedText = options?.comment
+    ? `💬 commented on ${options.comment.mediaLabel}: "${text}"`
+    : text;
+  addMessage(lead.id, "in", storedText, "sent");
+  if (options?.comment) {
+    addLeadNote(lead.id, "note", `Came in from a comment on ${options.comment.mediaLabel}`);
+  }
 
   let outcome: AgentOutcome;
   if (isLiveMode()) {
@@ -315,7 +333,7 @@ export async function handleInboundMessage(
       }
     }
   } else {
-    outcome = runStubAgent(lead, text);
+    outcome = runStubAgent(lead, text, options?.comment?.mediaLabel ?? "");
   }
 
   const replyMessageId = addMessage(
@@ -333,5 +351,11 @@ export async function handleInboundMessage(
     });
   }
 
-  return { ...outcome, leadId: lead.id, replyMessageId };
+  // Public comment reply never carries deal details — it points to the DMs,
+  // where the real answer (or the held draft) lives.
+  const publicReply = options?.comment
+    ? (getSetting("comment_public_reply") ?? "answered you in the DMs 🤝")
+    : null;
+
+  return { ...outcome, leadId: lead.id, replyMessageId, publicReply };
 }

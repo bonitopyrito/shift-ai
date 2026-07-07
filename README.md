@@ -66,6 +66,31 @@ webhook share one pipeline. To go live:
 Note Meta's rule: bots may only reply within 24h of the customer's last
 message — fine for this use case (replies are near-instant).
 
+## Comments on posts & reels
+
+Comments run the same pipeline as DMs, with a twist: the AI posts a short
+public reply under the comment ("answered you in the DMs 🤝" — configurable
+via the `comment_public_reply` setting) and sends the real answer as a
+**Meta private reply** — a DM addressed to the comment. That's the loop that
+turns reel commenters into leads.
+
+Two ways to get comments in, both through the official Graph API:
+
+1. **Webhook (real-time)** — subscribe the Meta app to the `comments` field
+   alongside `messages`. The handler at `/api/webhooks/instagram` already
+   parses comment events, skips the seller's own comments, and delivers both
+   replies. Facebook Page posts work the same way via the `feed` field (wire
+   it identically when needed).
+2. **Poller (no public URL needed)** — `npm run poll` watches his recent
+   media for new comments every 60s and feeds them to `/api/comments`.
+   Needs `IG_PAGE_ACCESS_TOKEN` (with `instagram_manage_comments`) and
+   `IG_ACCOUNT_ID`. State lives in `data/poll-state.json`.
+
+**Why no scraping:** pulling his account with headless browsers or
+third-party scrapers violates Meta's ToS and risks the account — which *is*
+the business. The Graph API provides everything (his media, comments, DMs)
+legitimately, in real time, because it's his own account.
+
 ## Voice-note audio
 
 The `/api/voice-notes` endpoint takes a transcript. Audio transcription

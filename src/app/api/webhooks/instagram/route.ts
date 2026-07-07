@@ -3,7 +3,9 @@ import { handleInboundMessage } from "@/lib/agent";
 import {
   isInstagramConfigured,
   parseWebhookPayload,
+  replyToComment,
   sendInstagramMessage,
+  sendPrivateReply,
   verifyWebhookSignature,
 } from "@/lib/instagram";
 
@@ -36,8 +38,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "invalid JSON" }, { status: 400 });
   }
 
-  const events = parseWebhookPayload(payload);
-  for (const event of events) {
+  const { messages, comments } = parseWebhookPayload(payload);
+
+  for (const event of messages) {
     // The IG-scoped sender id doubles as the lead handle until profile lookup is wired in.
     const outcome = await handleInboundMessage(`ig:${event.senderId}`, event.text);
     if (outcome.disposition === "sent" && isInstagramConfigured()) {
@@ -49,6 +52,23 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  for (const comment of comments) {
+    const outcome = await handleInboundMessage(comment.username, comment.text, undefined, {
+      comment: { mediaLabel: comment.mediaLabel },
+    });
+    if (isInstagramConfigured()) {
+      try {
+        if (outcome.publicReply) await replyToComment(comment.commentId, outcome.publicReply);
+        // Held drafts go out through the approval queue instead.
+        if (outcome.disposition === "sent") {
+          await sendPrivateReply(comment.commentId, outcome.replyText);
+        }
+      } catch (err) {
+        console.error("Failed to deliver comment replies:", err);
+      }
+    }
+  }
+
   // Always 200 quickly so Meta doesn't retry-storm the endpoint.
-  return NextResponse.json({ received: events.length });
+  return NextResponse.json({ received: messages.length + comments.length });
 }

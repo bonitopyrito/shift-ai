@@ -30,6 +30,14 @@ async function dm(handle, text) {
 
 console.log(`Working ${BASE} ...\n`);
 
+async function comment(handle, text, media) {
+  const r = await post("/api/comments", { handle, text, media });
+  console.log(`💬 @${handle} on ${media}: "${text}"`);
+  console.log(`   public: "${r.publicReply}"`);
+  const tag = r.disposition === "draft" ? "✋ DM held for approval" : "→ DM sent";
+  console.log(`   ${tag}: "${r.reply}"\n`);
+}
+
 // A morning of DMs
 await dm("maria.g", "how much for the altima?");
 await dm("maria.g", "does it come with the trip ticket?");
@@ -39,6 +47,10 @@ await dm("jay_wheels", "i can do 9500 cash for the civic today");
 await dm("luis.autos", "when does the elantra get in? im interested");
 await dm("mike.f", "you got any pickup trucks?");
 await dm("carlos_m", "so we got a deal at 7800 or what");
+
+// Comments on his reels — answered publicly + slid into their DMs
+await comment("rob.garage", "how much?", 'reel: 2016 civic walkaround');
+await comment("yess.nia", "is the corolla still available??", 'post: corolla front lot pic');
 
 // The seller sends a voice note
 const vn = await post("/api/voice-notes", {

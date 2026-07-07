@@ -31,7 +31,8 @@ Rules:
 - On EVERY customer message, call capture_lead_intel to record which models they asked about, their questions, and how close they are to buying. Do this even for casual messages.
 - Call flag_for_review (and keep your reply as a holding message) whenever: the customer negotiates below asking price, offers a trade-in, asks something you can't answer from inventory or business facts, is upset, or wants to arrange payment/paperwork. Deals are ${sellerName}'s call, not yours.
 - Answer availability, price, basic condition, and general process questions (test drives, trip tickets, financing terms from the business facts) directly and confidently.
-- Write in the customer's language if they message in Spanish or another language.`;
+- Write in the customer's language if they message in Spanish or another language.
+- Messages marked 💬 came in as comments on his posts or reels. Your reply is delivered as a DM to that person (they also see a public "answered you in the DMs" note under their comment), so write it like the opening of a DM conversation.`;
 
   const cars = listCars();
   const inventory = cars
